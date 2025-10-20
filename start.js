@@ -1,6 +1,6 @@
-require("dotenv").config();
-const { initDatabase } = require("./models/db");
-const pool = require("./config/database");
+// start.js
+const { createDatabase, pool } = require("./config/database");
+const app = require("./app");
 
 const startServer = async () => {
   try {
@@ -11,22 +11,29 @@ const startServer = async () => {
     console.log("✅ Database connected successfully");
     connection.release();
 
-    // Initialize database structure
-    await initDatabase();
-
-    // Import and start the Express server
-    const app = require("./server");
     const PORT = process.env.PORT || 3000;
 
     app.listen(PORT, () => {
-      console.log(`🏥 FineCare Backend running on port ${PORT}`);
-      console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
-      console.log(`🕐 Started at: ${new Date().toLocaleString()}`);
+      console.log(`📡 Server running on port ${PORT}`);
+      console.log(`🌐 Environment: ${process.env.NODE_ENV || "development"}`);
+      console.log(`🚀 API ready at http://localhost:${PORT}`);
     });
   } catch (error) {
-    console.error("❌ Failed to start application:", error);
+    console.error("❌ Failed to start application:", error.message);
     process.exit(1);
   }
 };
+
+// Handle uncaught exceptions
+process.on("uncaughtException", (error) => {
+  console.error("💥 Uncaught Exception:", error);
+  process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("💥 Unhandled Rejection at:", promise, "reason:", reason);
+  process.exit(1);
+});
 
 startServer();

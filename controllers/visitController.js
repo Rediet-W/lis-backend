@@ -1,133 +1,156 @@
 const Visit = require("../models/Visit");
+const TestOrder = require("../models/TestOrder");
+const {
+  successResponse,
+  errorResponse,
+  validationError,
+  notFoundError,
+} = require("../utils/responseUtils");
+const { validateRequiredFields } = require("../utils/validationUtils");
 
 const visitController = {
-  getAllVisits: async (req, res) => {
+  getAll: async (req, res) => {
     try {
-      const visits = await Visit.getAll();
-      res.json({
-        success: true,
-        data: visits,
-        count: visits.length,
-      });
+      const { status, patient_id, date } = req.query;
+      const filters = {};
+
+      if (status) filters.status = status;
+      if (patient_id) filters.patient_id = patient_id;
+      if (date) filters.visit_date = date;
+
+      const visits = await Visit.findAll(filters);
+      successResponse(res, visits);
     } catch (error) {
-      console.error("Get visits error:", error);
-      res.status(500).json({
-        success: false,
-        error: "Failed to fetch visits",
-      });
+      errorResponse(res, "Failed to fetch visits");
     }
   },
 
-  getVisitById: async (req, res) => {
+  getById: async (req, res) => {
     try {
-      const visit = await Visit.getById(req.params.id);
+      const { id } = req.params;
+      const visit = await Visit.findById(id);
+
       if (!visit) {
-        return res.status(404).json({
-          success: false,
-          error: "Visit not found",
-        });
+        return notFoundError(res, "Visit");
       }
 
-      res.json({
-        success: true,
-        data: visit,
-      });
+      const testOrders = await Visit.getTestOrders(id);
+      successResponse(res, { ...visit, test_orders: testOrders });
     } catch (error) {
-      console.error("Get visit error:", error);
-      res.status(500).json({
-        success: false,
-        error: "Failed to fetch visit",
-      });
+      errorResponse(res, "Failed to fetch visit");
     }
   },
 
-  createVisit: async (req, res) => {
+  create: async (req, res) => {
     try {
       const {
         patient_id,
         receptionist_id,
         visit_date,
         visit_time,
-        priority,
-        special_instructions,
+        status = "registered",
+        priority = "routine",
       } = req.body;
 
-      if (!patient_id || !receptionist_id || !visit_date || !visit_time) {
-        return res.status(400).json({
-          success: false,
-          error:
-            "Missing required fields: patient_id, receptionist_id, visit_date, visit_time",
-        });
+      const errors = validateRequiredFields({ patient_id, visit_date }, [
+        "patient_id",
+        "visit_date",
+      ]);
+      if (errors.length > 0) {
+        return validationError(res, errors);
       }
 
-      const visitId = await Visit.create({
+      const visitData = {
         patient_id,
-        receptionist_id,
+        receptionist_id: receptionist_id || req.user?.id, // Use authenticated user if not provided
         visit_date,
-        visit_time,
-        priority: priority || "routine",
-        special_instructions,
-      });
-
-      res.status(201).json({
-        success: true,
-        message: "Visit created successfully",
-        data: { visit_id: visitId },
-      });
-    } catch (error) {
-      console.error("Create visit error:", error);
-      res.status(500).json({
-        success: false,
-        error: "Failed to create visit",
-      });
-    }
-  },
-
-  updateVisit: async (req, res) => {
-    try {
-      const visitId = req.params.id;
-      const { status, priority, special_instructions } = req.body;
-
-      const updated = await Visit.update(visitId, {
+        visit_time: visit_time || "08:00:00",
         status,
         priority,
-        special_instructions,
-      });
+      };
 
-      if (!updated) {
-        return res.status(404).json({
-          success: false,
-          error: "Visit not found",
-        });
-      }
-
-      res.json({
-        success: true,
-        message: "Visit updated successfully",
-      });
+      const newVisit = await Visit.create(visitData);
+      successResponse(res, newVisit, "Visit created successfully", 201);
     } catch (error) {
-      console.error("Update visit error:", error);
-      res.status(500).json({
-        success: false,
-        error: "Failed to update visit",
-      });
+      errorResponse(res, "Failed to create visit");
     }
   },
 
-  getVisitOrders: async (req, res) => {
+  update: async (req, res) => {
     try {
-      const orders = await Visit.getOrders(req.params.id);
-      res.json({
-        success: true,
-        data: orders,
-        count: orders.length,
-      });
+      const { id } = req.params;
+      const { status, priority, visit_date, visit_time } = req.body;
+
+      const existingVisit = await Visit.findById(id);
+      if (!existingVisit) {
+        return notFoundError(res, "Visit");
+      }
+
+      const updateData = {};
+      if (status !== undefined) updateData.status = status;
+      if (priority !== undefined) updateData.priority = priority;
+      if (visit_date !== undefined) updateData.visit_date = visit_date;
+      if (visit_time !== undefined) updateData.visit_time = visit_time;
+
+      const updated = await Visit.update(id, updateData);
+
+      if (updated) {
+        successResponse(
+          res,
+          { id, ...updateData },
+          "Visit updated successfully"
+        );
+      } else {
+        errorResponse(res, "Failed to update visit");
+      }
     } catch (error) {
-      console.error("Get visit orders error:", error);
-      res.status(500).json({
-        success: false,
-        error: "Failed to fetch visit orders",
-      });
+      errorResponse(res, "Failed to update visit");
+    }
+  },
+
+  updateStatus: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+
+      const existingVisit = await Visit.findById(id);
+      if (!existingVisit) {
+        return notFoundError(res, "Visit");
+      }
+
+      if (!status) {
+        return validationError(res, ["Status is required"]);
+      }
+
+      const updated = await Visit.updateStatus(id, status);
+
+      if (updated) {
+        successResponse(
+          res,
+          { id, status },
+          "Visit status updated successfully"
+        );
+      } else {
+        errorResponse(res, "Failed to update visit status");
+      }
+    } catch (error) {
+      errorResponse(res, "Failed to update visit status");
+    }
+  },
+
+  getTestOrders: async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const existingVisit = await Visit.findById(id);
+      if (!existingVisit) {
+        return notFoundError(res, "Visit");
+      }
+
+      const testOrders = await Visit.getTestOrders(id);
+      successResponse(res, testOrders);
+    } catch (error) {
+      errorResponse(res, "Failed to fetch test orders");
     }
   },
 };

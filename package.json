@@ -1,23 +1,33 @@
 {
-  "name": "lis-backend",
+  "name": "medical-lis",
   "version": "1.0.0",
-  "description": "Medical LIS Backend API",
-  "main": "server.js",
+  "description": "Laboratory Information System Backend",
+  "main": "start.js",
   "scripts": {
     "start": "node start.js",
     "dev": "nodemon start.js",
-    "init-db": "node -e \"require('./models/db').initDatabase()\""
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "mysql2": "^3.6.5",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "body-parser": "^1.20.2",
+    "mysql2": "^3.6.0",
     "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.0.0",
+    "morgan": "^1.10.0",
+    "dotenv": "^16.3.1"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
-  }
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "lis",
+    "laboratory",
+    "medical",
+    "backend",
+    "api"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
 }

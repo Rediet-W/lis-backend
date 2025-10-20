@@ -1,94 +1,71 @@
-const pool = require("../config/database");
+const { pool } = require("../config/database");
+const {
+  buildInsertQuery,
+  buildUpdateQuery,
+  buildWhereClause,
+} = require("../utils/queryUtils");
 
 class Patient {
-  static async getAll() {
-    const [rows] = await pool.execute(`
-      SELECT *, 
-             TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) as age 
-      FROM patients 
-      ORDER BY created_at DESC
-    `);
+  static async findAll(filters = {}) {
+    const { clause, values } = buildWhereClause(filters);
+    const query = `SELECT * FROM patients ${clause} ORDER BY full_name`;
+
+    const [rows] = await pool.execute(query, values);
     return rows;
   }
 
-  static async getById(patientId) {
+  static async findById(id) {
+    const [rows] = await pool.execute("SELECT * FROM patients WHERE id = ?", [
+      id,
+    ]);
+    return rows[0];
+  }
+
+  static async findByCardNumber(cardNumber) {
     const [rows] = await pool.execute(
-      `SELECT *, 
-              TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) as age 
-       FROM patients 
-       WHERE id = ?`,
-      [patientId]
+      "SELECT * FROM patients WHERE card_number = ?",
+      [cardNumber]
     );
     return rows[0];
   }
 
   static async create(patientData) {
-    // Generate card number (you might want a better system for this)
-    const cardNumber = "FC" + Date.now().toString().slice(-6);
-
-    const [result] = await pool.execute(
-      `INSERT INTO patients 
-       (card_number, full_name, date_of_birth, gender, phone, address, emergency_contact, email, blood_type, known_allergies, chronic_conditions, current_medications) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        cardNumber,
-        patientData.full_name,
-        patientData.date_of_birth,
-        patientData.gender,
-        patientData.phone,
-        patientData.address,
-        patientData.emergency_contact,
-        patientData.email,
-        patientData.blood_type || "unknown",
-        patientData.known_allergies,
-        patientData.chronic_conditions,
-        patientData.current_medications,
-      ]
-    );
-    return result.insertId;
+    const { query, values } = buildInsertQuery("patients", patientData);
+    const [result] = await pool.execute(query, values);
+    return { id: result.insertId, ...patientData };
   }
 
-  static async update(patientId, patientData) {
-    const [result] = await pool.execute(
-      `UPDATE patients 
-       SET full_name = ?, date_of_birth = ?, gender = ?, phone = ?, address = ?,
-           emergency_contact = ?, email = ?, blood_type = ?, known_allergies = ?,
-           chronic_conditions = ?, current_medications = ?
-       WHERE id = ?`,
-      [
-        patientData.full_name,
-        patientData.date_of_birth,
-        patientData.gender,
-        patientData.phone,
-        patientData.address,
-        patientData.emergency_contact,
-        patientData.email,
-        patientData.blood_type,
-        patientData.known_allergies,
-        patientData.chronic_conditions,
-        patientData.current_medications,
-        patientId,
-      ]
-    );
+  static async update(id, patientData) {
+    const { query, values } = buildUpdateQuery("patients", patientData, { id });
+    const [result] = await pool.execute(query, values);
     return result.affectedRows > 0;
   }
 
-  static async calculateAge(dateOfBirth) {
+  static async getVisits(patientId) {
     const [rows] = await pool.execute(
-      "SELECT TIMESTAMPDIFF(YEAR, ?, CURDATE()) as age",
-      [dateOfBirth]
+      `SELECT v.*, u.full_name as receptionist_name 
+       FROM visits v 
+       LEFT JOIN users u ON v.receptionist_id = u.id 
+       WHERE v.patient_id = ? 
+       ORDER BY v.visit_date DESC, v.visit_time DESC`,
+      [patientId]
     );
-    return rows[0].age;
+    return rows;
   }
 
   static async search(query) {
-    const [rows] = await pool.execute(
-      `SELECT *, TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) as age 
-       FROM patients 
-       WHERE full_name LIKE ? OR card_number LIKE ? OR phone LIKE ?
-       ORDER BY full_name`,
-      [`%${query}%`, `%${query}%`, `%${query}%`]
-    );
+    const searchQuery = `
+      SELECT * FROM patients 
+      WHERE full_name LIKE ? OR card_number LIKE ? OR phone LIKE ? OR email LIKE ?
+      ORDER BY full_name
+    `;
+    const searchValue = `%${query}%`;
+    const [rows] = await pool.execute(searchQuery, [
+      searchValue,
+      searchValue,
+      searchValue,
+      searchValue,
+    ]);
     return rows;
   }
 }

@@ -1,3 +1,4 @@
+// config/database.js
 const mysql = require("mysql2/promise");
 require("dotenv").config();
 
@@ -17,7 +18,7 @@ const createDatabase = async () => {
     console.log("✅ Database created/verified successfully");
     await connection.end();
   } catch (error) {
-    console.error("❌ Error creating database:", error);
+    console.error("❌ Error creating database:", error.message);
     throw error;
   }
 };
@@ -32,7 +33,19 @@ const dbConfig = {
   queueLimit: 0,
 };
 
-// Create the pool directly
+// Create the pool
 const pool = mysql.createPool(dbConfig);
 
-module.exports = pool;
+// Test the pool connection
+const testConnection = async () => {
+  try {
+    const connection = await pool.getConnection();
+    console.log("✅ Database pool connected successfully");
+    connection.release();
+  } catch (error) {
+    console.error("❌ Database pool connection failed:", error.message);
+    throw error;
+  }
+};
+
+module.exports = { pool, createDatabase, testConnection };
