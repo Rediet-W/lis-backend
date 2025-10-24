@@ -36,6 +36,19 @@ const authorizeRoles = (...roles) => {
   };
 };
 
+const signPatientToken = (patient) =>
+  jwt.sign(
+    { id: patient.id, role: "patient", type: "patient" },
+    process.env.JWT_SECRET || "your-secret-key",
+    { expiresIn: "7d" }
+  );
+
+const sanitizePatient = (p) => {
+  if (!p) return p;
+  const { password, ...rest } = p;
+  return rest;
+};
+
 module.exports = {
   authenticateToken,
   authorizeRoles,

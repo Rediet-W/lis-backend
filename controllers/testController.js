@@ -63,6 +63,7 @@ const testController = {
         linear_range,
         testing_modes,
         is_active = 1,
+        price,
       } = req.body;
 
       const errors = validateRequiredFields(
@@ -84,6 +85,7 @@ const testController = {
         linear_range,
         testing_modes,
         is_active: is_active ? 1 : 0,
+        price: Number.isFinite(Number(price)) ? Number(price) : 0,
       };
 
       const newTest = await Test.create(testData);
@@ -107,6 +109,7 @@ const testController = {
         linear_range,
         testing_modes,
         is_active,
+        price,
       } = req.body;
 
       const existingTest = await Test.findById(id);
@@ -126,6 +129,9 @@ const testController = {
       if (linear_range !== undefined) updateData.linear_range = linear_range;
       if (testing_modes !== undefined) updateData.testing_modes = testing_modes;
       if (is_active !== undefined) updateData.is_active = is_active ? 1 : 0;
+      if (price !== undefined) {
+        updateData.price = Number.isFinite(Number(price)) ? Number(price) : 0;
+      }
 
       const updated = await Test.update(id, updateData);
 

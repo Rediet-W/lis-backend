@@ -6,6 +6,16 @@ const {
 } = require("../utils/queryUtils");
 
 class DynamicQuestion {
+  static safeParseOptions(val) {
+    if (val == null || val === "") return [];
+    if (Array.isArray(val)) return val;
+    try {
+      return JSON.parse(val);
+    } catch {
+      return [];
+    }
+  }
+
   static async findAll(filters = {}) {
     const { clause, values } = buildWhereClause(filters);
     const query = `
@@ -15,9 +25,12 @@ class DynamicQuestion {
       ${clause}
       ORDER BY dq.id
     `;
-
     const [rows] = await pool.execute(query, values);
-    return rows;
+    return rows.map((row) => ({
+      ...row,
+      options: DynamicQuestion.safeParseOptions(row.options),
+      is_required: !!row.is_required,
+    }));
   }
 
   static async findById(id) {
@@ -28,39 +41,50 @@ class DynamicQuestion {
        WHERE dq.id = ?`,
       [id]
     );
-    return rows[0];
+    const row = rows[0];
+    if (!row) return undefined;
+    return {
+      ...row,
+      options: DynamicQuestion.safeParseOptions(row.options),
+      is_required: !!row.is_required,
+    };
   }
 
   static async create(questionData) {
-    // Parse options if it's a string
-    if (typeof questionData.options === "string") {
-      questionData.options = JSON.parse(questionData.options);
+    const data = { ...questionData };
+    // Normalize options to array
+    if (typeof data.options === "string") {
+      try {
+        data.options = JSON.parse(data.options);
+      } catch {
+        data.options = [];
+      }
     }
-
+    if (!Array.isArray(data.options)) data.options = [];
     const { query, values } = buildInsertQuery("dynamic_questions", {
-      ...questionData,
-      options: JSON.stringify(questionData.options),
+      ...data,
+      options: JSON.stringify(data.options),
     });
-
     const [result] = await pool.execute(query, values);
-    return { id: result.insertId, ...questionData };
+    return { id: result.insertId, ...data };
   }
 
   static async update(id, questionData) {
-    // Parse options if it's a string
-    if (questionData.options && typeof questionData.options === "string") {
-      questionData.options = JSON.parse(questionData.options);
+    const data = { ...questionData };
+    if (data.options !== undefined) {
+      if (typeof data.options === "string") {
+        try {
+          data.options = JSON.parse(data.options);
+        } catch {
+          data.options = [];
+        }
+      }
+      if (!Array.isArray(data.options)) data.options = [];
+      data.options = JSON.stringify(data.options);
     }
-
-    if (questionData.options) {
-      questionData.options = JSON.stringify(questionData.options);
-    }
-
-    const { query, values } = buildUpdateQuery(
-      "dynamic_questions",
-      questionData,
-      { id }
-    );
+    const { query, values } = buildUpdateQuery("dynamic_questions", data, {
+      id,
+    });
     const [result] = await pool.execute(query, values);
     return result.affectedRows > 0;
   }
@@ -78,11 +102,10 @@ class DynamicQuestion {
       "SELECT * FROM dynamic_questions WHERE test_id = ? ORDER BY id",
       [testId]
     );
-
-    // Parse options JSON
     return rows.map((row) => ({
       ...row,
-      options: row.options ? JSON.parse(row.options) : null,
+      options: DynamicQuestion.safeParseOptions(row.options),
+      is_required: !!row.is_required,
     }));
   }
 }

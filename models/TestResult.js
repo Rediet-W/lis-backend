@@ -9,12 +9,12 @@ class TestResult {
   static async findAll(filters = {}) {
     const { clause, values } = buildWhereClause(filters);
     const query = `
-      SELECT tr.*, to.test_order_id, t.name as test_name, p.full_name as patient_name,
+      SELECT tr.*, o.id AS test_order_id, t.name as test_name, p.full_name as patient_name,
              u.full_name as laboratorist_name, verifier.full_name as verified_by_name
       FROM test_results tr
-      JOIN test_orders to ON tr.test_order_id = to.id
-      JOIN tests t ON to.test_id = t.id
-      JOIN visits v ON to.visit_id = v.id
+      JOIN test_orders o ON tr.test_order_id = o.id
+      JOIN tests t ON o.test_id = t.id
+      JOIN visits v ON o.visit_id = v.id
       JOIN patients p ON v.patient_id = p.id
       LEFT JOIN users u ON tr.laboratorist_id = u.id
       LEFT JOIN users verifier ON tr.verified_by = verifier.id
@@ -28,13 +28,13 @@ class TestResult {
 
   static async findById(id) {
     const [rows] = await pool.execute(
-      `SELECT tr.*, to.test_id, to.visit_id, t.name as test_name,
+      `SELECT tr.*, o.test_id, o.visit_id, t.name as test_name,
               p.full_name as patient_name, p.card_number, p.date_of_birth, p.gender,
               u.full_name as laboratorist_name, verifier.full_name as verified_by_name
        FROM test_results tr
-       JOIN test_orders to ON tr.test_order_id = to.id
-       JOIN tests t ON to.test_id = t.id
-       JOIN visits v ON to.visit_id = v.id
+       JOIN test_orders o ON tr.test_order_id = o.id
+       JOIN tests t ON o.test_id = t.id
+       JOIN visits v ON o.visit_id = v.id
        JOIN patients p ON v.patient_id = p.id
        LEFT JOIN users u ON tr.laboratorist_id = u.id
        LEFT JOIN users verifier ON tr.verified_by = verifier.id

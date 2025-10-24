@@ -7,6 +7,8 @@ const {
   notFoundError,
 } = require("../utils/responseUtils");
 const { validateRequiredFields } = require("../utils/validationUtils");
+const ALLOWED_PRIORITIES = ["normal", "urgent"];
+const ALLOWED_SAMPLE_TYPES = ["serum", "plasma", "urine", "blood"];
 
 const testOrderController = {
   getAll: async (req, res) => {
@@ -62,17 +64,38 @@ const testOrderController = {
         return validationError(res, errors);
       }
 
+      let dynamicAnswersStr = null;
+      if (dynamic_answers !== undefined && dynamic_answers !== null) {
+        if (typeof dynamic_answers === "string") {
+          try {
+            JSON.parse(dynamic_answers); // validate
+            dynamicAnswersStr = dynamic_answers;
+          } catch {
+            // fallback to empty object
+            dynamicAnswersStr = "{}";
+          }
+        } else {
+          dynamicAnswersStr = JSON.stringify(dynamic_answers);
+        }
+      }
+
+      // Coerce enums
+      const priorityVal = ALLOWED_PRIORITIES.includes(priority)
+        ? priority
+        : "normal";
+      const sampleTypeVal = ALLOWED_SAMPLE_TYPES.includes(sample_type)
+        ? sample_type
+        : null; // set to null if not provided/invalid
+
       const orderData = {
         visit_id,
         test_id,
         status,
-        priority,
-        dynamic_answers: dynamic_answers
-          ? JSON.stringify(dynamic_answers)
-          : null,
-        ordered_by: ordered_by || req.user?.id,
+        priority: priorityVal,
+        dynamic_answers: dynamicAnswersStr,
+        ordered_by: ordered_by || null,
         ordered_at: new Date(),
-        sample_type,
+        sample_type: sampleTypeVal,
       };
 
       const newOrder = await TestOrder.create(orderData);

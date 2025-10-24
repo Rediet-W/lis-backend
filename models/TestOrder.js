@@ -9,17 +9,17 @@ class TestOrder {
   static async findAll(filters = {}) {
     const { clause, values } = buildWhereClause(filters);
     const query = `
-      SELECT to.*, t.name as test_name, t.sample_type, 
+      SELECT o.*, t.name as test_name, t.sample_type, 
              v.visit_date, v.visit_time, p.full_name as patient_name, p.card_number,
              u.full_name as ordered_by_name, tc.name as category_name
-      FROM test_orders to
-      JOIN tests t ON to.test_id = t.id
-      JOIN visits v ON to.visit_id = v.id
+      FROM test_orders o
+      JOIN tests t ON o.test_id = t.id
+      JOIN visits v ON o.visit_id = v.id
       JOIN patients p ON v.patient_id = p.id
-      LEFT JOIN users u ON to.ordered_by = u.id
+      LEFT JOIN users u ON o.ordered_by = u.id
       LEFT JOIN test_categories tc ON t.category_id = tc.id
       ${clause}
-      ORDER BY to.ordered_at DESC
+      ORDER BY o.ordered_at DESC
     `;
 
     const [rows] = await pool.execute(query, values);
@@ -28,15 +28,15 @@ class TestOrder {
 
   static async findById(id) {
     const [rows] = await pool.execute(
-      `SELECT to.*, t.name as test_name, t.description as test_description, t.sample_type,
+      `SELECT o.*, t.name as test_name, t.description as test_description, t.sample_type,
               v.visit_date, v.visit_time, p.full_name as patient_name, p.card_number, 
               p.date_of_birth, p.gender, u.full_name as ordered_by_name
-       FROM test_orders to
-       JOIN tests t ON to.test_id = t.id
-       JOIN visits v ON to.visit_id = v.id
+       FROM test_orders o
+       JOIN tests t ON o.test_id = t.id
+       JOIN visits v ON o.visit_id = v.id
        JOIN patients p ON v.patient_id = p.id
-       LEFT JOIN users u ON to.ordered_by = u.id
-       WHERE to.id = ?`,
+       LEFT JOIN users u ON o.ordered_by = u.id
+       WHERE o.id = ?`,
       [id]
     );
     return rows[0];
@@ -85,13 +85,13 @@ class TestOrder {
 
   static async getPendingOrders() {
     const [rows] = await pool.execute(
-      `SELECT to.*, t.name as test_name, p.full_name as patient_name, p.card_number
-       FROM test_orders to
-       JOIN tests t ON to.test_id = t.id
-       JOIN visits v ON to.visit_id = v.id
+      `SELECT o.*, t.name as test_name, p.full_name as patient_name, p.card_number
+       FROM test_orders o
+       JOIN tests t ON o.test_id = t.id
+       JOIN visits v ON o.visit_id = v.id
        JOIN patients p ON v.patient_id = p.id
-       WHERE to.status IN ('ordered', 'sample_collected', 'in_progress')
-       ORDER BY to.priority DESC, to.ordered_at ASC`
+       WHERE o.status IN ('ordered', 'sample_collected', 'in_progress')
+       ORDER BY o.priority DESC, o.ordered_at ASC`
     );
     return rows;
   }

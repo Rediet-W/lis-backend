@@ -4,7 +4,7 @@ const app = require("./app");
 
 const startServer = async () => {
   try {
-    console.log("🚀 Starting FineCare Backend...");
+    console.log("🚀 Starting world laboratory center Backend...");
 
     // Test database connection
     const connection = await pool.getConnection();

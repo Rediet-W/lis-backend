@@ -8,12 +8,10 @@ router.use(authenticateToken);
 
 // GET /api/dynamic-questions - Get all dynamic questions
 router.get("/", dynamicQuestionController.getAll);
-
-// GET /api/dynamic-questions/:id - Get dynamic question by ID
-router.get("/:id", dynamicQuestionController.getById);
-
 // GET /api/dynamic-questions/test/:testId - Get questions by test ID
 router.get("/test/:testId", dynamicQuestionController.getByTest);
+// GET /api/dynamic-questions/:id - Get dynamic question by ID
+router.get("/:id", dynamicQuestionController.getById);
 
 // POST /api/dynamic-questions - Create new dynamic question (Admin only)
 router.post("/", authorizeRoles("admin"), dynamicQuestionController.create);
