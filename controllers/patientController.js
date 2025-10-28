@@ -13,111 +13,6 @@ const {
 } = require("../utils/validationUtils");
 
 const patientController = {
-  login: async (req, res) => {
-    try {
-      const { email, card_number, identifier, password } = req.body || {};
-      const idf = identifier || email || card_number;
-      if (!idf || !password) {
-        return validationError(res, [
-          "identifier/email/card_number and password are required",
-        ]);
-      }
-
-      let patient = null;
-      if (email || (idf && String(idf).includes("@"))) {
-        patient = await Patient.findByEmail(email || idf);
-      } else {
-        patient = await Patient.findByCardNumber(card_number || idf);
-      }
-      if (!patient || !patient.password) {
-        return errorResponse(res, "Invalid credentials", 401);
-      }
-
-      const ok = await bcrypt.compare(password, patient.password);
-      if (!ok) {
-        return errorResponse(res, "Invalid credentials", 401);
-      }
-
-      const token = signPatientToken(patient);
-      return successResponse(
-        res,
-        { token, patient: sanitizePatient(patient) },
-        "Login successful"
-      );
-    } catch (err) {
-      return errorResponse(res, "Failed to login");
-    }
-  },
-
-  // GET /patients/me
-  me: async (req, res) => {
-    try {
-      const id = req.user?.id;
-      if (!id) return errorResponse(res, "Unauthorized", 401);
-      const patient = await Patient.findById(id);
-      if (!patient) return notFoundError(res, "Patient");
-      return successResponse(res, sanitizePatient(patient));
-    } catch {
-      return errorResponse(res, "Failed to load profile");
-    }
-  },
-
-  // PUT /patients/me
-  updateMe: async (req, res) => {
-    try {
-      const id = req.user?.id;
-      if (!id) return errorResponse(res, "Unauthorized", 401);
-
-      // Allow only table columns
-      const {
-        card_number,
-        full_name,
-        date_of_birth,
-        gender,
-        phone,
-        address,
-        emergency_contact,
-        email,
-        blood_type,
-        known_allergies,
-        chronic_conditions,
-        current_medications,
-        password,
-      } = req.body || {};
-
-      const norm = (v) => (v === "" || v === undefined ? null : v);
-      const updateData = {};
-      if (card_number !== undefined) updateData.card_number = norm(card_number);
-      if (full_name !== undefined)
-        updateData.full_name = full_name?.trim() || null;
-      if (date_of_birth !== undefined)
-        updateData.date_of_birth = norm(date_of_birth);
-      if (gender !== undefined) updateData.gender = norm(gender);
-      if (phone !== undefined) updateData.phone = norm(phone);
-      if (address !== undefined) updateData.address = norm(address);
-      if (emergency_contact !== undefined)
-        updateData.emergency_contact = norm(emergency_contact);
-      if (email !== undefined) updateData.email = norm(email);
-      if (blood_type !== undefined)
-        updateData.blood_type = norm(blood_type) || "unknown";
-      if (known_allergies !== undefined)
-        updateData.known_allergies = norm(known_allergies);
-      if (chronic_conditions !== undefined)
-        updateData.chronic_conditions = norm(chronic_conditions);
-      if (current_medications !== undefined)
-        updateData.current_medications = norm(current_medications);
-
-      if (password !== undefined && password !== null) {
-        updateData.password = await bcrypt.hash(String(password), 10);
-      }
-
-      const ok = await Patient.update(id, updateData);
-      if (!ok) return errorResponse(res, "Failed to update profile");
-      return successResponse(res, { id, ...updateData }, "Profile updated");
-    } catch {
-      return errorResponse(res, "Failed to update profile");
-    }
-  },
   getAll: async (req, res) => {
     try {
       const patients = await Patient.findAll();
@@ -143,8 +38,36 @@ const patientController = {
     }
   },
 
-  create: async (req, res) => {
+  // GET /patients/me
+  me: async (req, res) => {
     try {
+      const temp = req.user;
+      const userId = req.user.userId;
+      if (!userId) return errorResponse(res, "Unauthorized", 401);
+
+      const patient =
+        (await Patient.findByUserId?.(userId)) ||
+        (await Patient.findById(req.user?.patient_id)); // fallback if model lacks findByUserId
+
+      if (!patient) return notFoundError(res, "Patient");
+      return successResponse(res, patient);
+    } catch (error) {
+      return errorResponse(res, "Failed to fetch profile");
+    }
+  },
+
+  // PUT /patients/me
+  updateMe: async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) return errorResponse(res, "Unauthorized", 401);
+
+      const patient =
+        (await Patient.findByUserId?.(userId)) ||
+        (await Patient.findById(req.user?.patient_id));
+
+      if (!patient) return notFoundError(res, "Patient");
+
       const {
         card_number,
         full_name,
@@ -158,7 +81,56 @@ const patientController = {
         known_allergies,
         chronic_conditions,
         current_medications,
-        password,
+      } = req.body || {};
+
+      const norm = (v) => (v === "" || v === undefined ? null : v);
+      const updateData = {};
+      if (card_number !== undefined) updateData.card_number = norm(card_number);
+      if (full_name !== undefined)
+        updateData.full_name = full_name?.trim() || null;
+      if (date_of_birth !== undefined)
+        updateData.date_of_birth = norm(date_of_birth);
+      if (gender !== undefined) updateData.gender = norm(gender);
+      if (phone !== undefined) updateData.phone = norm(phone);
+      if (address !== undefined) updateData.address = norm(address);
+      if (emergency_contact !== undefined)
+        updateData.emergency_contact = norm(emergency_contact);
+      if (email !== undefined) updateData.email = norm(email);
+      if (blood_type !== undefined)
+        updateData.blood_type = norm(blood_type) || "unknown";
+      if (known_allergies !== undefined)
+        updateData.known_allergies = norm(known_allergies);
+      if (chronic_conditions !== undefined)
+        updateData.chronic_conditions = norm(chronic_conditions);
+      if (current_medications !== undefined)
+        updateData.current_medications = norm(current_medications);
+
+      const updated = await Patient.update(patient.id, updateData);
+      if (!updated) return errorResponse(res, "Failed to update profile");
+
+      const fresh = await Patient.findById(patient.id);
+      return successResponse(res, fresh, "Profile updated");
+    } catch (error) {
+      return errorResponse(res, "Failed to update profile");
+    }
+  },
+
+  create: async (req, res) => {
+    try {
+      const {
+        user_id,
+        card_number,
+        full_name,
+        date_of_birth,
+        gender,
+        phone,
+        address,
+        emergency_contact,
+        email,
+        blood_type,
+        known_allergies,
+        chronic_conditions,
+        current_medications,
       } = req.body;
 
       const errors = validateRequiredFields({ full_name, gender }, [
@@ -182,6 +154,7 @@ const patientController = {
       const norm = (v) => (v === "" || v === undefined ? null : v);
 
       const patientData = {
+        ...(norm(user_id) !== null && { user_id: norm(user_id) }),
         ...(norm(card_number) !== null && { card_number: norm(card_number) }),
         full_name: full_name.trim(),
         ...(norm(date_of_birth) !== null && {
@@ -217,9 +190,6 @@ const patientController = {
           );
         }
       }
-      if (password) {
-        patientData.password = await bcrypt.hash(String(password), 10);
-      }
 
       const newPatient = await Patient.create(patientData);
       successResponse(res, newPatient, "Patient created successfully", 201);
@@ -232,6 +202,7 @@ const patientController = {
     try {
       const { id } = req.params;
       const {
+        user_id,
         card_number,
         full_name,
         date_of_birth,
@@ -244,7 +215,6 @@ const patientController = {
         known_allergies,
         chronic_conditions,
         current_medications,
-        password,
       } = req.body;
 
       const existingPatient = await Patient.findById(id);
@@ -284,9 +254,6 @@ const patientController = {
         updateData.chronic_conditions = norm(chronic_conditions);
       if (current_medications !== undefined)
         updateData.current_medications = norm(current_medications);
-      if (password !== undefined && password !== null) {
-        updateData.password = await bcrypt.hash(String(password), 10);
-      }
 
       // Check if new card number conflicts with existing patient
       if (card_number && card_number !== existingPatient.card_number) {

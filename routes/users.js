@@ -7,7 +7,7 @@ const { authenticateToken, authorizeRoles } = require("../middleware/auth");
 router.use(authenticateToken);
 
 // GET /api/users - Get all users (Admin only)
-router.get("/", authorizeRoles("admin"), userController.getAll);
+router.get("/", authorizeRoles("admin", "receptionist"), userController.getAll);
 
 // GET /api/users/laboratorists - Get all laboratorists
 router.get("/laboratorists", userController.getLaboratorists);
@@ -16,7 +16,11 @@ router.get("/laboratorists", userController.getLaboratorists);
 router.get("/:id", userController.getById);
 
 // POST /api/users - Create new user (Admin only)
-router.post("/", authorizeRoles("admin"), userController.create);
+router.post(
+  "/",
+  authorizeRoles("admin", "receptionist"),
+  userController.create
+);
 
 // PUT /api/users/:id - Update user (Admin only)
 router.put("/:id", authorizeRoles("admin"), userController.update);

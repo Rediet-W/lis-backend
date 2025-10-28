@@ -3,11 +3,10 @@ const router = express.Router();
 const patientController = require("../controllers/patientController");
 const { authenticateToken, authorizeRoles } = require("../middleware/auth");
 
-// PUBLIC: patient login
-router.post("/login", patientController.login);
 // Apply authentication to all routes
 router.use(authenticateToken);
-// Self profile endpoints
+
+// Self profile (current logged-in user's patient record)
 router.get("/me", patientController.me);
 router.put("/me", patientController.updateMe);
 

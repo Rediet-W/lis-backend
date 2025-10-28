@@ -26,6 +26,25 @@ const testResultController = {
     }
   },
 
+  // Current patient’s results based on token context
+  getMine: async (req, res) => {
+    try {
+      // Expect req.user.role === 'patient' (enforced by route)
+      // Prefer explicit patient_id on token if present
+      const pid = req.user.userId;
+      if (!pid) {
+        return validationError(res, [
+          "Missing patient_id in token. Ensure the auth token includes patient_id for patient users.",
+        ]);
+      }
+
+      const results = await TestResult.findAll({ "v.patient_id": pid });
+      successResponse(res, results);
+    } catch (error) {
+      errorResponse(res, "Failed to fetch my test results");
+    }
+  },
+
   getById: async (req, res) => {
     try {
       const { id } = req.params;
@@ -39,6 +58,21 @@ const testResultController = {
       successResponse(res, { ...result, parameter_results: parameterResults });
     } catch (error) {
       errorResponse(res, "Failed to fetch test result");
+    }
+  },
+
+  // Lookup result by order (useful for print page)
+  getByOrderId: async (req, res) => {
+    try {
+      const { orderId } = req.params;
+      const result = await TestResult.findByTestOrderId(orderId);
+      if (!result) {
+        return notFoundError(res, "Test result for order");
+      }
+      const parameterResults = await TestResult.getParameterResults(result.id);
+      successResponse(res, { ...result, parameter_results: parameterResults });
+    } catch (error) {
+      errorResponse(res, "Failed to fetch test result by order");
     }
   },
 

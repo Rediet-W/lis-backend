@@ -20,6 +20,13 @@ class Patient {
     ]);
     return rows[0];
   }
+  static async findByUserId(userId) {
+    const [rows] = await pool.execute(
+      "SELECT * FROM patients WHERE user_id = ? LIMIT 1",
+      [userId]
+    );
+    return rows?.[0] || null;
+  }
 
   static async findByCardNumber(cardNumber) {
     const [rows] = await pool.execute(

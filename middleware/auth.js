@@ -8,20 +8,35 @@ const authenticateToken = (req, res, next) => {
   if (!token) {
     return unauthorizedError(res, "Access token required");
   }
+  try {
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || "your-secret-key"
+    );
 
-  jwt.verify(
-    token,
-    process.env.JWT_SECRET || "your-secret-key",
-    (err, user) => {
-      if (err) {
-        return unauthorizedError(res, "Invalid or expired token");
-      }
-      req.user = user;
-      next();
+    // Normalize to req.user.id and req.user.role
+    const normalized = {
+      ...decoded,
+      id:
+        decoded.id ??
+        decoded.userId ??
+        decoded.user_id ??
+        decoded.sub ??
+        decoded.user?.id ??
+        null,
+      role: decoded.role ?? decoded.user?.role ?? null,
+    };
+
+    if (!normalized.id) {
+      return unauthorizedError(res, "Invalid token payload");
     }
-  );
-};
 
+    req.user = normalized;
+    return next();
+  } catch (err) {
+    return unauthorizedError(res, "Invalid or expired token");
+  }
+};
 const authorizeRoles = (...roles) => {
   return (req, res, next) => {
     if (!req.user) {
@@ -34,19 +49,6 @@ const authorizeRoles = (...roles) => {
 
     next();
   };
-};
-
-const signPatientToken = (patient) =>
-  jwt.sign(
-    { id: patient.id, role: "patient", type: "patient" },
-    process.env.JWT_SECRET || "your-secret-key",
-    { expiresIn: "7d" }
-  );
-
-const sanitizePatient = (p) => {
-  if (!p) return p;
-  const { password, ...rest } = p;
-  return rest;
 };
 
 module.exports = {

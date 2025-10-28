@@ -6,6 +6,12 @@ const { authenticateToken, authorizeRoles } = require("../middleware/auth");
 // Apply authentication to all routes
 router.use(authenticateToken);
 
+// GET /api/test-results/my - Current patient's results
+router.get("/my", authorizeRoles("patient"), testResultController.getMine);
+
+// GET /api/test-results/by-order/:orderId - Result for an order (print)
+router.get("/by-order/:orderId", testResultController.getByOrderId);
+
 // GET /api/test-results - Get all test results
 router.get("/", testResultController.getAll);
 
