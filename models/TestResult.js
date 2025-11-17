@@ -29,7 +29,7 @@ class TestResult {
   static async findById(id) {
     const [rows] = await pool.execute(
       `SELECT tr.*, o.test_id, o.visit_id, t.name as test_name,
-              p.full_name as patient_name, p.card_number, p.date_of_birth, p.gender,
+              p.full_name as patient_name, p.card_number, p.age, p.gender,
               u.full_name as laboratorist_name, verifier.full_name as verified_by_name
        FROM test_results tr
        JOIN test_orders o ON tr.test_order_id = o.id

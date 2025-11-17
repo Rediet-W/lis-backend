@@ -9,9 +9,12 @@ class Test {
   static async findAll(filters = {}) {
     const { clause, values } = buildWhereClause(filters);
     const query = `
-      SELECT t.*, tc.name as category_name 
+      SELECT t.*, 
+             tc.name as category_name,
+             st.name as sample_type_name
       FROM tests t 
       LEFT JOIN test_categories tc ON t.category_id = tc.id 
+      LEFT JOIN sample_types st ON t.sample_type_id = st.id
       ${clause} 
       ORDER BY t.name
     `;
@@ -20,11 +23,55 @@ class Test {
     return rows;
   }
 
+  static async findAllWithDetails(activeOnly = true) {
+    try {
+      let whereClause = "";
+      const values = [];
+
+      if (activeOnly) {
+        whereClause = " WHERE t.is_active = ?";
+        values.push(1);
+      }
+
+      const query = `
+        SELECT
+          t.id,
+          t.name,
+          t.description,
+          t.sample_volume,
+          t.tube_type,
+          t.processing_time,
+          t.linear_range,
+          t.testing_modes,
+          t.is_active,
+          t.price,
+          t.created_at,
+          tc.name AS category_name,
+          st.name AS sample_type_name,
+          st.description AS sample_type_description
+        FROM tests t
+        LEFT JOIN test_categories tc ON t.category_id = tc.id
+        LEFT JOIN sample_types st ON t.sample_type_id = st.id
+        ${whereClause}
+        ORDER BY t.name
+      `;
+
+      const [rows] = await pool.execute(query, values);
+      return rows;
+    } catch (error) {
+      console.error("Error in findAllWithDetails:", error);
+      throw error;
+    }
+  }
+
   static async findById(id) {
     const [rows] = await pool.execute(
-      `SELECT t.*, tc.name as category_name 
+      `SELECT t.*, 
+              tc.name as category_name,
+              st.name as sample_type_name
        FROM tests t 
        LEFT JOIN test_categories tc ON t.category_id = tc.id 
+       LEFT JOIN sample_types st ON t.sample_type_id = st.id
        WHERE t.id = ?`,
       [id]
     );

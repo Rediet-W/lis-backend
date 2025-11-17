@@ -23,7 +23,7 @@ class Visit {
 
   static async findById(id) {
     const [rows] = await pool.execute(
-      `SELECT v.*, p.full_name as patient_name, p.card_number, p.date_of_birth, p.gender,
+      `SELECT v.*, p.full_name as patient_name, p.card_number, p.age, p.gender,
               u.full_name as receptionist_name
        FROM visits v
        JOIN patients p ON v.patient_id = p.id

@@ -9,11 +9,12 @@ class TestOrder {
   static async findAll(filters = {}) {
     const { clause, values } = buildWhereClause(filters);
     const query = `
-      SELECT o.*, t.name as test_name, t.sample_type, 
-             v.visit_date, v.visit_time, p.full_name as patient_name, p.card_number,
+      SELECT o.*, t.name as test_name, st.name as sample_type, 
+             v.visit_date, v.visit_time, p.full_name as patient_name, p.card_number, p.age as patient_age, p.gender as patient_gender,
              u.full_name as ordered_by_name, tc.name as category_name
       FROM test_orders o
       JOIN tests t ON o.test_id = t.id
+      LEFT JOIN sample_types st ON t.sample_type_id = st.id
       JOIN visits v ON o.visit_id = v.id
       JOIN patients p ON v.patient_id = p.id
       LEFT JOIN users u ON o.ordered_by = u.id
@@ -28,11 +29,12 @@ class TestOrder {
 
   static async findById(id) {
     const [rows] = await pool.execute(
-      `SELECT o.*, t.name as test_name, t.description as test_description, t.sample_type,
+      `SELECT o.*, t.name as test_name, t.description as test_description, st.name as sample_type,
               v.visit_date, v.visit_time, p.full_name as patient_name, p.card_number, 
-              p.date_of_birth, p.gender, u.full_name as ordered_by_name
+              p.age as patient_age, p.gender as patient_gender, u.full_name as ordered_by_name
        FROM test_orders o
        JOIN tests t ON o.test_id = t.id
+       LEFT JOIN sample_types st ON t.sample_type_id = st.id
        JOIN visits v ON o.visit_id = v.id
        JOIN patients p ON v.patient_id = p.id
        LEFT JOIN users u ON o.ordered_by = u.id
@@ -85,7 +87,7 @@ class TestOrder {
 
   static async getPendingOrders() {
     const [rows] = await pool.execute(
-      `SELECT o.*, t.name as test_name, p.full_name as patient_name, p.card_number
+      `SELECT o.*, t.name as test_name, p.full_name as patient_name, p.card_number, p.age as patient_age, p.gender as patient_gender
        FROM test_orders o
        JOIN tests t ON o.test_id = t.id
        JOIN visits v ON o.visit_id = v.id

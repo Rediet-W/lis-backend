@@ -22,6 +22,8 @@ const clinicRoutes = require("./routes/clinics");
 const activityLogRoutes = require("./routes/activityLogs");
 const userRoutes = require("./routes/users");
 const authRoutes = require("./routes/auth");
+const sampleTypeRoutes = require("./routes/sampleTypes");
+const pathologistReportRoutes = require("./routes/pathologistReports");
 
 const app = express();
 
@@ -68,6 +70,8 @@ app.use("/api/clinic", clinicRoutes);
 app.use("/api/activity-logs", activityLogRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/sample-types", sampleTypeRoutes);
+app.use("/api/pathologist-reports", pathologistReportRoutes);
 
 // 404 handler
 app.use("*", (req, res) => {

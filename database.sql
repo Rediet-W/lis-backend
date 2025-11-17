@@ -148,7 +148,7 @@ CREATE TABLE patients (
   id INT AUTO_INCREMENT PRIMARY KEY,
   card_number VARCHAR(50),
   full_name VARCHAR(100),
-  date_of_birth DATE,
+  age DATE,
   gender ENUM('male','female'),
   phone VARCHAR(20),
   address TEXT,

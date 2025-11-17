@@ -9,6 +9,9 @@ router.use(authenticateToken);
 // GET /api/tests - Get all tests
 router.get("/", testController.getAll);
 
+// GET /api/tests/details - Get all tests with full details
+router.get("/details", testController.getAllWithDetails);
+
 // GET /api/tests/:id - Get test by ID
 router.get("/:id", testController.getById);
 

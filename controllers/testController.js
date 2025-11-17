@@ -20,7 +20,19 @@ const testController = {
       const tests = await Test.findAll(filters);
       successResponse(res, tests);
     } catch (error) {
+      console.error("Error in getAll:", error);
       errorResponse(res, "Failed to fetch tests");
+    }
+  },
+
+  getAllWithDetails: async (req, res) => {
+    try {
+      const activeOnly = req.query.active !== "false";
+      const tests = await Test.findAllWithDetails(activeOnly);
+      successResponse(res, tests);
+    } catch (error) {
+      console.error("Error in getAllWithDetails:", error);
+      errorResponse(res, "Failed to fetch tests with details");
     }
   },
 
@@ -46,6 +58,7 @@ const testController = {
         dynamic_questions: questions,
       });
     } catch (error) {
+      console.error("Error in getById:", error);
       errorResponse(res, "Failed to fetch test");
     }
   },
@@ -56,7 +69,7 @@ const testController = {
         category_id,
         name,
         description,
-        sample_type,
+        sample_type_id, // CHANGED: sample_type_id instead of sample_type
         sample_volume,
         tube_type,
         processing_time,
@@ -66,9 +79,10 @@ const testController = {
         price,
       } = req.body;
 
+      // CHANGED: Validate sample_type_id instead of sample_type
       const errors = validateRequiredFields(
-        { category_id, name, sample_type },
-        ["category_id", "name", "sample_type"]
+        { category_id, name, sample_type_id },
+        ["category_id", "name", "sample_type_id"]
       );
       if (errors.length > 0) {
         return validationError(res, errors);
@@ -78,7 +92,7 @@ const testController = {
         category_id,
         name,
         description,
-        sample_type,
+        sample_type_id, // CHANGED
         sample_volume,
         tube_type,
         processing_time,
@@ -91,6 +105,7 @@ const testController = {
       const newTest = await Test.create(testData);
       successResponse(res, newTest, "Test created successfully", 201);
     } catch (error) {
+      console.error("Error in create:", error);
       errorResponse(res, "Failed to create test");
     }
   },
@@ -102,7 +117,7 @@ const testController = {
         category_id,
         name,
         description,
-        sample_type,
+        sample_type_id, // CHANGED
         sample_volume,
         tube_type,
         processing_time,
@@ -121,7 +136,8 @@ const testController = {
       if (category_id !== undefined) updateData.category_id = category_id;
       if (name !== undefined) updateData.name = name;
       if (description !== undefined) updateData.description = description;
-      if (sample_type !== undefined) updateData.sample_type = sample_type;
+      if (sample_type_id !== undefined)
+        updateData.sample_type_id = sample_type_id; // CHANGED
       if (sample_volume !== undefined) updateData.sample_volume = sample_volume;
       if (tube_type !== undefined) updateData.tube_type = tube_type;
       if (processing_time !== undefined)
@@ -145,6 +161,7 @@ const testController = {
         errorResponse(res, "Failed to update test");
       }
     } catch (error) {
+      console.error("Error in update:", error);
       errorResponse(res, "Failed to update test");
     }
   },
@@ -166,6 +183,7 @@ const testController = {
         errorResponse(res, "Failed to deactivate test");
       }
     } catch (error) {
+      console.error("Error in delete:", error);
       errorResponse(res, "Failed to deactivate test");
     }
   },

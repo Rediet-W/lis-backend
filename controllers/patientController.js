@@ -71,7 +71,7 @@ const patientController = {
       const {
         card_number,
         full_name,
-        date_of_birth,
+        age,
         gender,
         phone,
         address,
@@ -88,8 +88,7 @@ const patientController = {
       if (card_number !== undefined) updateData.card_number = norm(card_number);
       if (full_name !== undefined)
         updateData.full_name = full_name?.trim() || null;
-      if (date_of_birth !== undefined)
-        updateData.date_of_birth = norm(date_of_birth);
+      if (age !== undefined) updateData.age = norm(age);
       if (gender !== undefined) updateData.gender = norm(gender);
       if (phone !== undefined) updateData.phone = norm(phone);
       if (address !== undefined) updateData.address = norm(address);
@@ -121,7 +120,7 @@ const patientController = {
         user_id,
         card_number,
         full_name,
-        date_of_birth,
+        age,
         gender,
         phone,
         address,
@@ -157,8 +156,8 @@ const patientController = {
         ...(norm(user_id) !== null && { user_id: norm(user_id) }),
         ...(norm(card_number) !== null && { card_number: norm(card_number) }),
         full_name: full_name.trim(),
-        ...(norm(date_of_birth) !== null && {
-          date_of_birth: norm(date_of_birth),
+        ...(norm(age) !== null && {
+          age: norm(age),
         }),
         gender: gender,
         ...(norm(phone) !== null && { phone: norm(phone) }),
@@ -205,7 +204,7 @@ const patientController = {
         user_id,
         card_number,
         full_name,
-        date_of_birth,
+        age,
         gender,
         phone,
         address,
@@ -238,8 +237,7 @@ const patientController = {
       if (card_number !== undefined) updateData.card_number = norm(card_number);
       if (full_name !== undefined)
         updateData.full_name = full_name?.trim() || null;
-      if (date_of_birth !== undefined)
-        updateData.date_of_birth = norm(date_of_birth);
+      if (age !== undefined) updateData.age = norm(age);
       if (gender !== undefined) updateData.gender = norm(gender);
       if (phone !== undefined) updateData.phone = norm(phone);
       if (address !== undefined) updateData.address = norm(address);
